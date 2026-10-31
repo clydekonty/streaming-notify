@@ -2,8 +2,9 @@ name: Check Watchlist Streaming Availability
 
 on:
   schedule:
-    # Run daily at 13:00 UTC (9:00 AM EDT)
-    - cron: '0 13 * * *'
+    # Run once a week every Friday at 13:00 UTC (9:00 AM EDT)
+    # Day-of-week: 0 = Sun, 1 = Mon, ..., 5 = Fri, 6 = Sat
+    - cron: '0 13 * * 5'
   workflow_dispatch:
     inputs:
       dry_run:

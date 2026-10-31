@@ -22,7 +22,7 @@ This repository is designed from the ground up to **never expose your personal e
 - **Fuzzy & Canonical Service Matching:** Automatically maps naming variations across services (e.g., `Disney+` ↔ `Disney Plus`, `Apple TV+` ↔ `Apple TV Plus`, `Prime Video` ↔ `Amazon Prime Video`, `Paramount+ with Showtime` ↔ `Paramount Plus`).
 - **State Deduplication (`sqlite3`):** Persists notified films in a local SQLite database (`alerts.db`). Alerts are sent only once per film per service.
 - **Responsive HTML Email Delivery (`smtplib`):** Sends a clean, dark-themed HTML alert via Gmail SMTP SSL (`smtp.gmail.com:465`) when new arrivals are found. If no new titles are available, stdout displays a status message and email sending is skipped.
-- **GitHub Actions Daily Cron:** Runs automatically every day via GitHub Actions with encrypted repository secrets and database caching.
+- **GitHub Actions Weekly Automation:** Runs automatically once a week (every Friday morning) via GitHub Actions with encrypted repository secrets and database caching.
 
 ---
 
@@ -153,7 +153,7 @@ python3 main.py
 
 ## 🤖 GitHub Actions Automation
 
-The repository includes a GitHub Actions workflow in [`.github/workflows/check_streaming.yml`](file:///.github/workflows/check_streaming.yml) that automatically runs every day at 13:00 UTC (9:00 AM EDT).
+The repository includes a GitHub Actions workflow in [`.github/workflows/check_streaming.yml`](file:///.github/workflows/check_streaming.yml) that automatically runs once a week (every Friday at 13:00 UTC / 9:00 AM EDT).
 
 ### Adding Repository Secrets to GitHub
 
