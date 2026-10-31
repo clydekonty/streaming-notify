@@ -1,0 +1,12 @@
+# List your active streaming subscriptions below (one per line).
+# Lines starting with '#' or empty lines are ignored.
+Criterion Channel
+Netflix
+Max
+Paramount Plus
+Peacock
+Disney Plus
+Hulu
+Apple TV Plus
+Amazon Prime Video
+

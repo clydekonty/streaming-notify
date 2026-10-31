@@ -1,0 +1,4 @@
+# Enter the email address that will receive alerts.
+# Example:
+your_email@gmail.com
+

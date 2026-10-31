@@ -1,0 +1,35 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Database files
+alerts.db
+*.db
+*.sqlite3
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+email.txt
+
+# Gitignored user configuration folder for private settings
+config/*
+!config/*.example.*
+!config/*.example.txt
+!config/README.md
+secrets/
+
+# IDE & OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
