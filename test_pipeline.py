@@ -70,24 +70,44 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(film2.year, 1993)
 
     def test_provider_name_matching(self):
-        """Verify normalization and fuzzy provider matching."""
-        # Exact and minor variations
+        """Verify normalization, channel add-on isolation, and provider matching."""
+        # Genuine subscription matches (e.g. Taxi Driver on Apple TV, Heat on Prime Video)
         self.assertTrue(match_service("Disney Plus", "Disney+"))
         self.assertTrue(match_service("Apple TV Plus", "Apple TV+"))
         self.assertTrue(match_service("Apple TV Plus", "Apple TV"))
+        self.assertTrue(match_service("Apple TV Plus", "Apple TV Amazon Channel"))
         self.assertTrue(match_service("Criterion Channel", "The Criterion Channel"))
         self.assertTrue(match_service("Amazon Prime Video", "Prime Video"))
+        self.assertTrue(match_service("Amazon Prime Video", "Amazon Prime Video"))
         self.assertTrue(match_service("Amazon Prime Video", "Amazon Prime Video with Ads"))
         self.assertTrue(match_service("Paramount Plus", "Paramount+ with Showtime"))
+        self.assertTrue(match_service("Paramount Plus", "Paramount+ Amazon Channel"))
         self.assertTrue(match_service("Peacock", "Peacock Premium"))
         self.assertTrue(match_service("Max", "HBO Max"))
+        self.assertTrue(match_service("Max", "HBO Max Amazon Channel"))
         self.assertTrue(match_service("Max", "Max"))
         self.assertTrue(match_service("Netflix", "Netflix"))
         self.assertTrue(match_service("Hulu", "Hulu"))
 
-        # False positive prevention
+        # Add-on channels MUST NOT match the hosting platform (e.g. The Lobster / The Shape of Water)
+        self.assertFalse(match_service("Apple TV Plus", "Cinemax Apple TV channel"))
+        self.assertFalse(match_service("Apple TV Plus", "AMC Plus Apple TV channel"))
+        self.assertFalse(match_service("Apple TV Plus", "Starz Apple TV channel"))
+        self.assertFalse(match_service("Amazon Prime Video", "Cinemax Amazon Channel"))
+        self.assertFalse(match_service("Amazon Prime Video", "HBO Max Amazon Channel"))
+        self.assertFalse(match_service("Amazon Prime Video", "Starz Amazon Channel"))
+        self.assertFalse(match_service("Amazon Prime Video", "MGM+ Amazon Channel"))
+
+        # Transactional Rent/Buy stores MUST NEVER match subscription streaming
+        self.assertFalse(match_service("Apple TV Plus", "Apple TV Store"))
+        self.assertFalse(match_service("Amazon Prime Video", "Amazon Video"))
+
+        # General false positive prevention
         self.assertFalse(match_service("Max", "Cinemax"))
+        self.assertFalse(match_service("Max", "Cinemax Amazon Channel"))
+        self.assertFalse(match_service("Max", "Cinemax Apple TV channel"))
         self.assertFalse(match_service("Hulu", "FuboTV"))
+        self.assertFalse(match_service("Criterion Channel", "MUBI"))
         self.assertFalse(match_service("Criterion Channel", "MUBI"))
 
     def test_database_persistence_and_deduplication(self):

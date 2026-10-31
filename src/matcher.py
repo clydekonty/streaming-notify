@@ -1,58 +1,71 @@
 """Streaming provider matching and normalization logic."""
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from src.tmdb import TMDBProvider
 
-# Canonical service names mapped to common provider aliases and variations
-SERVICE_ALIASES: Dict[str, List[str]] = {
-    "criterion channel": [
+# Transactional rental/purchase stores that should NEVER be considered free subscription streaming
+TRANSACTIONAL_PROVIDERS: Set[str] = {
+    "apple tv store",
+    "amazon video",
+    "google play movies",
+    "youtube",
+    "fandango at home",
+    "vudu",
+    "microsoft store",
+    "redbox",
+    "spectrum on demand",
+}
+
+# Canonical service names mapped to specific allowed provider aliases
+SERVICE_MAP: Dict[str, Set[str]] = {
+    "criterion channel": {
         "criterion channel",
         "the criterion channel",
         "criterion",
-    ],
-    "netflix": [
+    },
+    "netflix": {
         "netflix",
+        "netflix standard with ads",
         "netflix basic with ads",
-    ],
-    "max": [
+    },
+    "max": {
         "max",
         "hbo max",
         "hbo",
-        "max amazon channel",
-    ],
-    "paramount plus": [
+    },
+    "paramount plus": {
         "paramount plus",
         "paramount+",
         "paramount+ with showtime",
         "paramount plus with showtime",
-        "paramount+ amazon channel",
-        "paramount plus apple tv channel",
-    ],
-    "peacock": [
+        "paramount plus premium",
+        "paramount plus essential",
+    },
+    "peacock": {
         "peacock",
         "peacock premium",
         "peacock premium plus",
         "peacock plus",
-    ],
-    "disney plus": [
+    },
+    "disney plus": {
         "disney plus",
         "disney+",
-    ],
-    "hulu": [
+    },
+    "hulu": {
         "hulu",
-    ],
-    "apple tv plus": [
+    },
+    "apple tv plus": {
         "apple tv plus",
         "apple tv+",
-        "apple tv",
-    ],
-    "amazon prime video": [
+        "apple tv",  # TMDB ID 350 for Apple TV+ subscription
+    },
+    "amazon prime video": {
         "amazon prime video",
         "prime video",
-        "amazon video",
         "amazon prime video with ads",
-    ],
+        "amazon prime video free with ads",
+    },
 }
 
 
@@ -69,40 +82,57 @@ def normalize_service_name(name: str) -> str:
 
 def match_service(target_service: str, provider_name: str) -> bool:
     """
-    Check if a provider returned by TMDB matches one of the user's target services.
+    Check if a provider returned by TMDB matches one of the user's target subscriptions.
 
-    Handles:
-    - Normalization of punctuation, casing, '+' vs 'plus'
-    - Known aliases (e.g. 'Prime Video' -> 'Amazon Prime Video')
-    - Word boundary checks (prevents 'Max' matching 'Cinemax')
+    Crucially distinguishes between:
+    - Included subscription streaming (e.g. Apple TV+, Amazon Prime Video)
+    - Rental/Purchase stores (e.g. Apple TV Store, Amazon Video)
+    - Add-on channels (e.g. 'Cinemax Apple TV channel' is Cinemax, NOT Apple TV+)
     """
     norm_target = normalize_service_name(target_service)
     norm_prov = normalize_service_name(provider_name)
 
-    # 1. Direct equality
-    if norm_target == norm_prov:
+    # 1. Never match transactional rent/buy stores
+    if norm_prov in TRANSACTIONAL_PROVIDERS:
+        return False
+
+    # 2. Decompose channel add-on providers
+    # E.g., 'Cinemax Apple TV channel' -> core network is 'Cinemax'
+    # E.g., 'Apple TV Amazon Channel' -> core network is 'Apple TV'
+    # E.g., 'HBO Max Amazon Channel' -> core network is 'HBO Max'
+    channel_pattern = r"^(.*?)\s+(?:apple tv channel|amazon channel|roku channel|roku premium channel)$"
+    channel_match = re.search(channel_pattern, norm_prov, re.IGNORECASE)
+    if channel_match:
+        core_service = channel_match.group(1).strip()
+    else:
+        core_service = norm_prov
+
+    # 3. Find canonical service key for target_service
+    target_canonical = None
+    for canonical, aliases in SERVICE_MAP.items():
+        if norm_target == normalize_service_name(canonical) or any(
+            norm_target == normalize_service_name(a) for a in aliases
+        ):
+            target_canonical = canonical
+            break
+
+    # If target is custom and not in SERVICE_MAP
+    if not target_canonical:
+        return norm_target == core_service
+
+    allowed_aliases = {normalize_service_name(a) for a in SERVICE_MAP[target_canonical]}
+
+    # 4. Check core service against allowed aliases
+    if core_service in allowed_aliases:
         return True
 
-    # 2. Check predefined canonical aliases
-    for canonical, aliases in SERVICE_ALIASES.items():
-        norm_canonical = normalize_service_name(canonical)
-        norm_aliases = [normalize_service_name(a) for a in aliases]
-
-        # Is the target service part of this alias group?
-        if norm_target == norm_canonical or norm_target in norm_aliases:
-            # Check if provider name matches any alias in the group
-            for alias in norm_aliases:
-                if alias == norm_prov:
-                    return True
-                # Match full phrase as word boundaries e.g. "paramount plus" in "paramount plus with showtime"
-                if re.search(r"\b" + re.escape(alias) + r"\b", norm_prov):
-                    return True
-
-    # 3. Multi-word boundary matching (for custom services not in aliases)
-    if " " in norm_target and re.search(r"\b" + re.escape(norm_target) + r"\b", norm_prov):
-        return True
-    if " " in norm_prov and re.search(r"\b" + re.escape(norm_prov) + r"\b", norm_target):
-        return True
+    # 5. Word-boundary match on core service only
+    for alias in allowed_aliases:
+        if re.search(r"\b" + re.escape(alias) + r"\b", core_service):
+            # Guard against Cinemax accidentally matching Max
+            if target_canonical == "max" and "cinemax" in core_service:
+                continue
+            return True
 
     return False
 
@@ -112,7 +142,7 @@ def find_matched_services(
 ) -> List[Tuple[str, TMDBProvider]]:
     """
     Given a list of target services and TMDB providers for a movie,
-    return a list of tuples: (matched_target_service, tmdb_provider).
+    return a deduplicated list of tuples: (matched_target_service, tmdb_provider).
     """
     matches = []
     matched_targets = set()
@@ -126,4 +156,3 @@ def find_matched_services(
                 matched_targets.add(target)
 
     return matches
-
