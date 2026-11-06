@@ -20,9 +20,9 @@ This repository is designed from the ground up to **never expose your personal e
 - **Watchlist Ingestion (`feedparser` & `curl_cffi`):** Parses your Letterboxd watchlist, extracting film titles and release years while handling Cloudflare bot protection and multi-page watchlists.
 - **TMDB Watch Provider Lookups (`requests`):** Queries TMDB `/search/movie` and `/movie/{id}/watch/providers` to check real-time US flatrate streaming availability.
 - **Fuzzy & Canonical Service Matching:** Automatically maps naming variations across services (e.g., `Disney+` ↔ `Disney Plus`, `Apple TV+` ↔ `Apple TV Plus`, `Prime Video` ↔ `Amazon Prime Video`, `Paramount+ with Showtime` ↔ `Paramount Plus`).
-- **State Deduplication (`sqlite3`):** Persists notified films in a local SQLite database (`alerts.db`). Alerts are sent only once per film per service.
+- **State Deduplication & Auto-Sync:** Persists notified films in both local SQLite (`alerts.db`) and a git-friendly, privacy-preserving state file (`state/alerts_state.json`) using HMAC hashes. Alerts are sent only once per film per service.
 - **Responsive HTML Email Delivery (`smtplib`):** Sends a clean, dark-themed HTML alert via Gmail SMTP SSL (`smtp.gmail.com:465`) when new arrivals are found. If no new titles are available, stdout displays a status message and email sending is skipped.
-- **GitHub Actions Weekly Automation:** Runs automatically once a week (every Friday morning) via GitHub Actions with encrypted repository secrets and database caching.
+- **Zero-Maintenance GitHub Actions Automation:** Runs automatically once a week (every Friday morning) via GitHub Actions. It auto-commits state changes back to GitHub so you never have to manually run or push anything.
 
 ---
 
@@ -32,13 +32,15 @@ This repository is designed from the ground up to **never expose your personal e
 streaming-notify/
 ├── .github/
 │   └── workflows/
-│       └── check_streaming.yml     # Daily scheduled GitHub Actions workflow
+│       └── check_streaming.yml     # Weekly scheduled GitHub Actions workflow
 ├── config/
 │   ├── README.md                   # Explanation of private user config
 │   ├── email.example.txt           # Template for alert email (tracked)
 │   ├── services.example.txt        # Template for streaming services (tracked)
 │   ├── email.txt                   # YOUR private email (gitignored)
 │   └── services.txt                # YOUR private active subscriptions (gitignored)
+├── state/
+│   └── alerts_state.json           # Privacy-preserving alert state hashes (auto-updated by GitHub Actions)
 ├── src/
 │   ├── __init__.py
 │   ├── config.py                   # Configuration loader & validator

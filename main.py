@@ -67,7 +67,7 @@ def run_pipeline(
     )
 
     # 2. Initialize Database
-    db = AlertDatabase(db_path or config.db_path)
+    db = AlertDatabase(db_path or config.db_path, secret_key=config.tmdb_api_key)
     total_existing = db.get_alert_count()
     logger.info("Database loaded (%s) with %d existing alert records.", db.db_path, total_existing)
 

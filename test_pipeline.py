@@ -114,9 +114,10 @@ class TestPipeline(unittest.TestCase):
         """Verify SQLite creation, deduplication, and persistence."""
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_db:
             db_path = tmp_db.name
+        state_path = db_path + ".json"
 
         try:
-            db = AlertDatabase(db_path)
+            db = AlertDatabase(db_path, state_path=state_path)
             self.assertEqual(db.get_alert_count(), 0)
 
             # Not notified yet
@@ -141,6 +142,8 @@ class TestPipeline(unittest.TestCase):
         finally:
             if os.path.exists(db_path):
                 os.remove(db_path)
+            if os.path.exists(state_path):
+                os.remove(state_path)
 
     def test_email_html_generation(self):
         """Verify email generator creates valid HTML with film cards and links."""
@@ -168,9 +171,10 @@ class TestPipeline(unittest.TestCase):
         """Simulate end-to-end pipeline run with mock data."""
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_db:
             db_path = tmp_db.name
+        state_path = db_path + ".json"
 
         try:
-            db = AlertDatabase(db_path)
+            db = AlertDatabase(db_path, state_path=state_path)
             target_services = ["Netflix", "Criterion Channel"]
 
             # Mock TMDB response
@@ -202,6 +206,8 @@ class TestPipeline(unittest.TestCase):
         finally:
             if os.path.exists(db_path):
                 os.remove(db_path)
+            if os.path.exists(state_path):
+                os.remove(state_path)
 
 
 if __name__ == "__main__":
